@@ -24,7 +24,7 @@ export type WorkspaceQuotaWithUsage = Omit<
   WorkspaceQuotaType,
   'humanReadable'
 > & { ownerQuota?: string };
-// GraphQL Int is a signed 32-bit integer, so use max int32 as practical "no limit".
+// GraphQL Int is signed int32, so use the max signed int32 value as practical "no limit".
 const WORKSPACE_MEMBER_NO_LIMIT = 2_147_483_647;
 
 @Injectable()
