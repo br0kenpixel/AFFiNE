@@ -24,7 +24,7 @@ export type WorkspaceQuotaWithUsage = Omit<
   WorkspaceQuotaType,
   'humanReadable'
 > & { ownerQuota?: string };
-const UNLIMITED_WORKSPACE_MEMBER_LIMIT = 2_147_483_647;
+const MAX_WORKSPACE_MEMBER_LIMIT = 2_147_483_647;
 
 @Injectable()
 export class QuotaService {
@@ -132,14 +132,14 @@ export class QuotaService {
 
       return {
         ...ownerQuota,
-        memberLimit: UNLIMITED_WORKSPACE_MEMBER_LIMIT,
+        memberLimit: MAX_WORKSPACE_MEMBER_LIMIT,
         ownerQuota: owner.id,
       };
     }
 
     return {
       ...quota.configs,
-      memberLimit: UNLIMITED_WORKSPACE_MEMBER_LIMIT,
+      memberLimit: MAX_WORKSPACE_MEMBER_LIMIT,
     };
   }
 
