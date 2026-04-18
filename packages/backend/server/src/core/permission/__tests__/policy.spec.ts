@@ -113,23 +113,21 @@ test('should keep owned workspace writable when quota is within limit', async t 
   );
 });
 
-test('should enter readonly mode when fallback owner member quota overflows', async t => {
+test('should keep writable when fallback owner member quota overflows', async t => {
   await addAcceptedMembers(t.context.models, workspace.id, 10);
 
   const state = await t.context.policy.reconcileWorkspaceQuotaState(
     workspace.id
   );
 
-  t.true(state.isReadonly);
-  t.true(state.canRecoverByRemovingMembers);
+  t.false(state.isReadonly);
+  t.false(state.canRecoverByRemovingMembers);
   t.false(state.canRecoverByDeletingBlobs);
-  t.deepEqual(state.readonlyReasons, ['member_overflow']);
-  t.true(
+  t.deepEqual(state.readonlyReasons, []);
+  t.false(
     await t.context.models.workspaceFeature.has(workspace.id, READONLY_FEATURE)
   );
-  await t.throwsAsync(t.context.policy.assertCanInviteMembers(workspace.id), {
-    instanceOf: SpaceAccessDenied,
-  });
+  await t.notThrowsAsync(t.context.policy.assertCanInviteMembers(workspace.id));
 });
 
 test('should deny blob uploads when user no longer has write access', async t => {

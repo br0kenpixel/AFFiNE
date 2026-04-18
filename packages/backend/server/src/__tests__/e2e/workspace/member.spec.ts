@@ -88,59 +88,60 @@ e2e('should invite a user', async t => {
   t.is(getInviteInfo2.status, WorkspaceMemberStatus.Accepted);
 });
 
-e2e('should re-check seat when accepting an email invitation', async t => {
-  const { owner, workspace } = await createWorkspace();
-  const member = await app.create(Mockers.User);
-  await app.create(Mockers.TeamWorkspace, {
-    id: workspace.id,
-    quantity: 4,
-  });
+e2e(
+  'should allow accepting an email invitation even after team quota is removed',
+  async t => {
+    const { owner, workspace } = await createWorkspace();
+    const member = await app.create(Mockers.User);
+    await app.create(Mockers.TeamWorkspace, {
+      id: workspace.id,
+      quantity: 4,
+    });
 
-  await app.create(Mockers.WorkspaceUser, {
-    workspaceId: workspace.id,
-    userId: (await app.create(Mockers.User)).id,
-  });
-  await app.create(Mockers.WorkspaceUser, {
-    workspaceId: workspace.id,
-    userId: (await app.create(Mockers.User)).id,
-  });
-
-  await app.login(owner);
-  const invite = await app.gql({
-    query: inviteByEmailsMutation,
-    variables: {
-      emails: [member.email],
+    await app.create(Mockers.WorkspaceUser, {
       workspaceId: workspace.id,
-    },
-  });
+      userId: (await app.create(Mockers.User)).id,
+    });
+    await app.create(Mockers.WorkspaceUser, {
+      workspaceId: workspace.id,
+      userId: (await app.create(Mockers.User)).id,
+    });
 
-  await app.eventBus.emitAsync('workspace.members.allocateSeats', {
-    workspaceId: workspace.id,
-    quantity: 4,
-  });
+    await app.login(owner);
+    const invite = await app.gql({
+      query: inviteByEmailsMutation,
+      variables: {
+        emails: [member.email],
+        workspaceId: workspace.id,
+      },
+    });
 
-  await app.models.workspaceFeature.remove(workspace.id, 'team_plan_v1');
+    await app.eventBus.emitAsync('workspace.members.allocateSeats', {
+      workspaceId: workspace.id,
+      quantity: 4,
+    });
 
-  await app.login(member);
-  await t.throwsAsync(
-    app.gql({
+    await app.models.workspaceFeature.remove(workspace.id, 'team_plan_v1');
+
+    await app.login(member);
+    await app.gql({
       query: acceptInviteByInviteIdMutation,
       variables: {
         workspaceId: workspace.id,
         inviteId: invite.inviteMembers[0].inviteId!,
       },
-    })
-  );
+    });
 
-  const { getInviteInfo } = await app.gql({
-    query: getInviteInfoQuery,
-    variables: {
-      inviteId: invite.inviteMembers[0].inviteId!,
-    },
-  });
+    const { getInviteInfo } = await app.gql({
+      query: getInviteInfoQuery,
+      variables: {
+        inviteId: invite.inviteMembers[0].inviteId!,
+      },
+    });
 
-  t.is(getInviteInfo.status, WorkspaceMemberStatus.Pending);
-});
+    t.is(getInviteInfo.status, WorkspaceMemberStatus.Accepted);
+  }
+);
 
 e2e.serial(
   'should block accepting pending invitations in readonly mode and recover after blob cleanup',

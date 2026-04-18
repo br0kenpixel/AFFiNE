@@ -91,10 +91,6 @@ export class WorkspacePolicyService {
     const usesFallbackOwnerQuota =
       !!quotaSnapshot.ownerQuota && !isUnlimitedWorkspace;
 
-    if (usesFallbackOwnerQuota && quotaSnapshot.overcapacityMemberCount > 0) {
-      readonlyReasons.push('member_overflow');
-    }
-
     if (
       usesFallbackOwnerQuota &&
       quotaSnapshot.usedStorageQuota > quotaSnapshot.storageQuota

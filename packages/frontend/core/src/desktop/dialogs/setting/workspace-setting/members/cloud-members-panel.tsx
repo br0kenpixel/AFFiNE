@@ -2,14 +2,12 @@ import { Button, Loading, notify, useConfirmModal } from '@affine/component';
 import {
   InviteTeamMemberModal,
   type InviteTeamMemberModalProps,
-  MemberLimitModal,
 } from '@affine/component/member-components';
 import { SettingRow } from '@affine/component/setting-components';
 import { useAsyncCallback } from '@affine/core/components/hooks/affine-async-hooks';
 import { Upload } from '@affine/core/components/pure/file-upload';
 import {
   ServerService,
-  SubscriptionService,
   WorkspaceSubscriptionService,
 } from '@affine/core/modules/cloud';
 import {
@@ -92,15 +90,9 @@ export const CloudWorkspaceMembersPanel = ({
   const isLoading = useLiveData(workspaceQuotaService.quota.isRevalidating$);
   const error = useLiveData(workspaceQuotaService.quota.error$);
   const workspaceQuota = useLiveData(workspaceQuotaService.quota.quota$);
-  const subscriptionService = useService(SubscriptionService);
-  const plan = useLiveData(
-    subscriptionService.subscription.pro$.map(s => s?.plan)
-  );
-
   const t = useI18n();
 
   const [openInvite, setOpenInvite] = useState(false);
-  const [openMemberLimit, setOpenMemberLimit] = useState(false);
   const [isMutating, setIsMutating] = useState(false);
 
   const { openConfirmModal, closeConfirmModal } = useConfirmModal();
@@ -196,16 +188,6 @@ export const CloudWorkspaceMembersPanel = ({
     }: Parameters<InviteTeamMemberModalProps['onConfirm']>[0]) => {
       setIsMutating(true);
       const uniqueEmails = deduplicateEmails(emails);
-      if (
-        !isTeam &&
-        workspaceQuota &&
-        uniqueEmails.length >
-          workspaceQuota.memberLimit - workspaceQuota.memberCount
-      ) {
-        setOpenMemberLimit(true);
-        setIsMutating(false);
-        return;
-      }
       const results = await membersService.inviteMembers(uniqueEmails);
       const unSuccessInvites = results.reduce<string[]>((acc, result) => {
         if (!result.sentSuccess) {
@@ -229,7 +211,7 @@ export const CloudWorkspaceMembersPanel = ({
       }
       setIsMutating(false);
     },
-    [isTeam, membersService, t, workspaceQuota, workspaceQuotaService.quota]
+    [membersService, t, workspaceQuotaService.quota]
   );
 
   const onImportCSV = useAsyncCallback(
@@ -283,11 +265,8 @@ export const CloudWorkspaceMembersPanel = ({
   ]);
 
   const title = useMemo(() => {
-    if (isTeam) {
-      return `${t['Members']()} (${workspaceQuota?.memberCount})`;
-    }
-    return `${t['Members']()} (${workspaceQuota?.memberCount}/${workspaceQuota?.memberLimit})`;
-  }, [isTeam, t, workspaceQuota?.memberCount, workspaceQuota?.memberLimit]);
+    return `${t['Members']()} (${workspaceQuota?.memberCount})`;
+  }, [t, workspaceQuota?.memberCount]);
 
   if (workspaceQuota === null) {
     if (isLoading) {
@@ -309,16 +288,6 @@ export const CloudWorkspaceMembersPanel = ({
         {isOwnerOrAdmin ? (
           <>
             <Button onClick={openInviteModal}>{t['Invite Members']()}</Button>
-            {!isTeam ? (
-              <MemberLimitModal
-                isFreePlan={!plan}
-                open={openMemberLimit}
-                plan={workspaceQuota.humanReadable.name ?? ''}
-                quota={workspaceQuota.humanReadable.memberLimit ?? ''}
-                setOpen={setOpenMemberLimit}
-                onConfirm={handleUpgradeConfirm}
-              />
-            ) : null}
             <InviteTeamMemberModal
               open={openInvite}
               setOpen={setOpenInvite}
